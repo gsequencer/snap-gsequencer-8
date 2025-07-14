@@ -1,0 +1,78 @@
+name: gsequencer-8
+version: '8.0.11'
+summary: Advanced Gtk+ Sequencer
+description: |
+  GSequencer is intended to be use for music composition. It features
+  notation, automation and wave form editor. Supporting LADSPA, DSSI
+  and LV2 plugins.
+icon: snap/local/ags.png
+
+base: core24
+grade: stable
+confinement: strict
+
+parts:
+  gsequencer-8:
+    source: http://download-mirror.savannah.gnu.org/releases/gsequencer/8.0.x/gsequencer-8.0.11.tar.gz # See 'snapcraft plugins'
+    plugin: autotools
+    build-packages: [wget,fop,gstreamer1.0-plugins-base,gstreamer1.0-plugins-good,gstreamer1.0-plugins-bad,libgstreamer1.0-dev,libgstreamer-plugins-base1.0-dev,libinstpatch-dev,libsndfile-dev,libsamplerate-dev,libsoup2.4-dev,libsoup-3.0-dev,libxml2-dev,libpoppler-glib-dev,gobject-introspection,libgmp-dev,ladspa-sdk,dssi-dev,lv2-dev,libfftw3-dev,libasound2-dev,libjack-jackd2-dev,libpulse-dev,uuid-dev,libcunit1-dev,docbook-xsl,docbook-xml,gtk-doc-tools,xsltproc]
+    stage-packages: [libatk-bridge2.0-0,libatspi2.0-0,libbrotli1,libcairo-gobject2,libdrm2,libegl1,libenchant-2-2,libepoxy0,libfftw3-double3,libgbm1,libgl1,libglvnd0,libglx0,libgstreamer-gl1.0-0,gstreamer1.0-plugins-base,gstreamer1.0-plugins-good,libgstreamer-plugins-base1.0-0,libgstreamer1.0-0,libgudev-1.0-0,libgtk-4-1,libhyphen0,libinstpatch-1.0-2,libnotify4,liborc-0.4-0,libsecret-1-0,libsoup2.4-1,libsoup-3.0-0,libpoppler-glib8,libwayland-client0,libwayland-cursor0,libwayland-egl1,libwayland-server0,libwebp7,libwebpdemux2,libwoff1,libx11-xcb1,libxkbcommon0,libxslt1.1,ubuntustudio-audio-plugins,cmt,xsynth-dssi,calf-plugins,invada-studio-plugins-lv2,swh-plugins,hydrogen-drumkits,fluid-soundfont-gm,fluid-soundfont-gs]
+    override-build: |
+      ./configure --prefix=/snap --enable-public-libgsequencer --enable-snap-sandbox --with-poppler --with-gtk-unix-print --disable-introspection
+      make -j $SNAPCRAFT_PARALLEL_BUILD_COUNT
+      make -j1 pdf
+      DESTDIR=$CRAFT_PART_INSTALL make -j1 install
+      DESTDIR=$CRAFT_PART_INSTALL make -j1 install-pdf-mkdir
+      DESTDIR=$CRAFT_PART_INSTALL make -j1 install-pdf
+      rm -rf $CRAFT_PART_INSTALL/snap/include
+    override-pull: |
+      snapcraftctl pull
+      autoreconf -fi
+
+slots:
+  dbus-daemon:
+    interface: dbus
+    bus: session
+    name: org.nongnu.gsequencer.gsequencer
+
+apps:
+  gsequencer-8:
+    command: snap/bin/gsequencer
+    extensions: [gnome]
+    desktop: snap/share/applications/gsequencer.desktop
+    common-id: org.nongnu.gsequencer.gsequencer
+    environment:
+      LD_LIBRARY_PATH: $LD_LIBRARY_PATH:$SNAP/snap/lib
+      XDG_DATA_DIRS: $SNAP/snap/share:$XDG_DATA_DIRS
+      LADSPA_PATH: $SNAP/usr/lib/ladspa
+      DSSI_PATH: $SNAP/usr/lib/dssi
+      LV2_PATH: $SNAP/usr/lib/lv2
+      AGS_SNAP_PATH: $SNAP
+      AGS_ANIMATION_FILENAME: $SNAP/snap/share/gsequencer/images/gsequencer-800x450.png
+      AGS_LOGO_FILENAME: $SNAP/snap/share/gsequencer/images/ags.png
+      AGS_CSS_FILENAME: $SNAP/snap/share/gsequencer/styles/ags.css
+      AGS_ONLINE_HELP_PDF_FILENAME: $SNAP/snap/share/doc/gsequencer/pdf/user-manual-a4.pdf
+    slots:
+      - dbus-daemon
+    plugs:
+      - x11
+      - wayland
+      - desktop
+      - alsa
+      - pulseaudio
+      - gsettings
+      - home
+      - dot-gsequencer-ags-conf
+      - content
+      - openvswitch
+      - cups
+
+plugs:
+  icon-themes:
+    interface: content
+    target: $SNAP/snap/share/icons
+    default-provider: gtk-common-themes:icon-themes
+  dot-gsequencer-ags-conf:
+    interface: personal-files
+    write:
+    - $HOME/.gsequencer/ags.conf
